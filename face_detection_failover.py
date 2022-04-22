@@ -38,6 +38,16 @@ def correcting_rotation(face_cropped:np.array, face_keypoints):
         face_cropped = np.rot90(face_cropped, k=rot)
     return face_cropped
 
+def filter_bbox(img:np.array, bboxes:list)->int:
+    """Filter Bounding Box if more than one, use the one that closest to the center of images
+    Return bbox index with most closest to the center"""    
+    if len(bboxes)==1:
+        return 0
+    center_img = [int(img.shape[0]/2), int(img.shape[1]/2)]
+    center_bbox = [[int(bbox[2]-bbox[0]),int(bbox[3]-bbox[1])] for bbox in bboxes]
+    l2_distances = [np.linalg.norm(np.array(bbox)-np.array(center_img)) for bbox in center_bbox]
+    return np.argmin(l2_distances)
+
 def face_detection_failover(rgb_img:np.array)->Dict[str, Any]:
     """Face Detection using failover systems
     Detect_Face -> Yolov5, if detected -> correcting orientation
@@ -60,10 +70,12 @@ def face_detection_failover(rgb_img:np.array)->Dict[str, Any]:
     # Try Yolo first
     for degree in [0,1,3,2]:
         img_rot = np.rot90(rgb_img, k=degree)
-        yolo_bboxes, yolo_points = yoloface.predict(img_rot,conf_thres = 0.65)
-        if len(yolo_bboxes[0]) != 0:
-            yolo_bboxes = yolo_bboxes[0][0]
-            yolo_points = yolo_points[0][0]
+        yolo_bboxes, yolo_points = yoloface.predict(img_rot, conf_thres = 0.65)
+        yolo_bboxes, yolo_points = yolo_bboxes[0], yolo_points[0]
+        if len(yolo_bboxes) != 0:
+            bbox_idx = filter_bbox(img_rot, yolo_bboxes)
+            yolo_bboxes = yolo_bboxes[bbox_idx]
+            yolo_points = yolo_points[bbox_idx]
             xmin,ymin,xmax,ymax = np.array(yolo_bboxes).astype(int)
             face_cropped = img_rot[ymin:ymax, xmin:xmax]
             # Check if face have correct output
