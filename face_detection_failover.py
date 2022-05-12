@@ -60,6 +60,8 @@ def face_detection_failover(rgb_img:np.array)->Dict[str, Any]:
         {
             'detector': 'yolo','dsfd', or 'none',
             'rotation_degree: 0, 90, 180, or 270 degree,
+            'bounding_box': [xmin,ymin,xmax,ymax] or [] empty list if not detected,
+            'conf': confidence level or 0 if not detected, 
             'face_img': rgb_face_img or np.nan if not detected
         }
     """    
@@ -72,6 +74,7 @@ def face_detection_failover(rgb_img:np.array)->Dict[str, Any]:
             bbox_idx = filter_bbox(img_rot, yolo_bboxes)
             yolo_bboxes = yolo_bboxes[bbox_idx]
             yolo_points = yolo_points[bbox_idx]
+            yolo_confs = yolo_confs[bbox_idx]
             xmin,ymin,xmax,ymax = np.array(yolo_bboxes).astype(int)
             face_cropped = img_rot[ymin:ymax, xmin:xmax]
             # Check if face have correct output
@@ -81,6 +84,8 @@ def face_detection_failover(rgb_img:np.array)->Dict[str, Any]:
             return dict(
                 detector = 'yolo',
                 rotation_degree = degree*90,
+                bounding_box = [xmin,ymin,xmax,ymax],
+                conf = yolo_conf,
                 face_img = face_cropped
             )
     else:
@@ -100,18 +105,24 @@ def face_detection_failover(rgb_img:np.array)->Dict[str, Any]:
                     return dict(
                         detector = 'dsfd',
                         rotation_degree = degree*90,
+                        bounding_box = [xmin,ymin,xmax,ymax],
+                        conf = conf,
                         face_img = face_cropped
                     )                
             else:
                 return dict(
                     detector = 'none',
                     rotation_degree = 0,
+                    bounding_box = [],
+                    conf = 0,
                     face_img = np.nan
                 )
         except:
             return dict(
                     detector = 'none',
                     rotation_degree = 0,
+                    bounding_box = [],
+                    conf = 0,
                     face_img = np.nan
                 )
                 
