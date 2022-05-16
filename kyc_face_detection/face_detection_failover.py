@@ -7,17 +7,19 @@ from yolov5facedetector.face_detector import YoloDetector
 import face_detection
 import logging
 import warnings
-warnings.filterwarnings('ignore')
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_fmt)
 logger = logging.getLogger(__name__)
 
 class FailoverModel:
-    """Store Face Detection Failover Model"""
+    """Face Detection using Failover Model"""
     def __init__(self, 
-                 yolo_config=dict(yolo_type='yolov5l', target_size=720, gpu=0, confidence_threshold=0.6),
-                 dsfd_config=dict(confidence_threshold=.65, nms_iou_threshold=.3)
-                 ):
+                 yolo_config:Dict[str, Any]=dict(yolo_type='yolov5l', confidence_threshold=0.6, target_size=720, gpu=0),
+                 dsfd_config:Dict[str, Any]=dict(confidence_threshold=.65, nms_iou_threshold=.3)
+                 )->None:
+        """Initialize Failover Face Detection Model
+        Input: Config of yolo & dsfd model"""
+        warnings.filterwarnings('ignore')
         logger.info('Load YOLOv5-Face & DSFD Model to memory')
         start = timer()
         self.yoloface = YoloDetector(
@@ -32,7 +34,7 @@ class FailoverModel:
         self._yolo_config = yolo_config
         self._dsfd_config = dsfd_config
 
-    def _correcting_rotation(self, face_cropped:np.array, face_keypoints):
+    def _correcting_rotation(self, face_cropped:np.array, face_keypoints:list)->np.array:
         """Check if face rotated, rotate cropped image based on conditions in eyes and nose
         Face Keypoints need to have points for left_eye, right_eye and nose"""
         left_eye, right_eye, nose, *others = face_keypoints
